@@ -1,0 +1,383 @@
+# Signposts: one value each (core/expr.py), red and yellow lines (for the page, the rules and the alerts), a group
+# (signposts of one group measure the same thing: in the world their pushes are averaged, one reading in the middle a
+# vote for usual (the owner, 2026-10-31); "vol" is the market's fear: the VIX, its term structure, the Fear & Greed
+# index, the MOVE), and what each says about the factors:
+# expect: what it says about the factors (config/factors.toml), each a mechanism one would defend without the
+# data: the factor, which way it moves more than usual (up, down) or how its moves spread (wider, narrower: larger or
+# smaller moves either way), over which days from the day, and why. The
+# stretches measured (run.py timescales) size it; a measure that goes the other way, or a move with no expectation,
+# is not used (plan section 13.8). Written 10-30, after the measures were seen: only textbook mechanisms, none
+# that only the data suggested; the spreads added 10-31 (volatility persists). The owner's beliefs that were rules
+# (buy back after the Nasdaq-100 falls, buy in extreme fear) are expectations since 10-31, marked so in their why: the
+# data sizes them like the rest, a weak one counts for little. The Bitcoin ones have none (Bitcoin has no factor).
+
+# --- growth and jobs
+[[signpost]]
+id = "growth_falling"
+driver = "Growth"
+name = "Industrial production, 6-month change"
+value = "ret(INDPRO, 182)"
+red = "< -0.01"
+yellow = "< 0.005"
+group = "growth"
+expect = [
+  { factor = "unemp", way = "up", days = [0, 365], why = "output falls first; hiring follows within the year" },
+  { factor = "unemp", way = "down", days = [365, 1095], why = "recoveries: unemployment falls back after a downturn" },
+  { factor = "rate10", way = "down", days = [0, 365], why = "growth fears and the Fed's cuts pull yields down" },
+]
+
+[[signpost]]
+id = "payrolls_weak"
+driver = "Growth"
+name = "Payrolls, 3-month change"
+value = "ret(PAYEMS, 91)"
+red = "< 0"
+yellow = "< 0.002"
+group = "labor"
+expect = [
+  { factor = "unemp", way = "up", days = [0, 365], why = "fewer jobs now is more unemployed within the year" },
+  { factor = "unemp", way = "down", days = [365, 1095], why = "recoveries: unemployment falls back after a downturn" },
+  { factor = "rate10", way = "down", days = [0, 365], why = "growth fears and the Fed's cuts pull yields down" },
+]
+
+[[signpost]]
+id = "sahm"
+driver = "Growth"
+name = "Sahm rule (real time)"
+value = "SAHM"
+red = ">= 0.5"
+yellow = ">= 0.3"
+group = "labor"
+expect = [
+  { factor = "unemp", way = "up", days = [0, 182], why = "it fires once unemployment is rising, which keeps on for months" },
+  { factor = "unemp", way = "down", days = [365, 1095], why = "recoveries: unemployment falls back after a downturn" },
+  { factor = "rate10", way = "down", days = [0, 365], why = "the Fed cuts into a recession" },
+]
+
+[[signpost]]
+id = "claims_rising"
+driver = "Growth"
+name = "Jobless claims, 4-week mean over its 1-year low"
+value = "mean(ICSA, 28) / low(mean(ICSA, 28), 365) - 1"
+red = "> 0.20"
+yellow = "> 0.10"
+group = "labor"
+expect = [
+  { factor = "unemp", way = "up", days = [0, 365], why = "layoffs show in claims before the unemployment rate" },
+  { factor = "rate10", way = "down", days = [0, 365], why = "growth fears and the Fed's cuts pull yields down" },
+]
+
+# --- inflation
+[[signpost]]
+id = "inflation_reaccelerating"
+driver = "Inflation"
+name = "Core PCE, 3-month annualised minus 12-month"
+value = "ann(CORE_PCE, 91) - yoy(CORE_PCE)"
+red = "> 0.005"
+yellow = "> 0.002"
+group = "inflation"
+expect = [
+  { factor = "infl", way = "up", days = [0, 365], why = "price pressure persists: a faster pace now shows in the yearly rate" },
+  { factor = "rate10", way = "up", days = [0, 182], why = "markets price more tightening" },
+]
+
+[[signpost]]
+id = "inflation_high"
+driver = "Inflation"
+name = "Core PCE, 12-month"
+value = "yoy(CORE_PCE)"
+red = "> 0.035"
+yellow = "> 0.03"
+group = "inflation"
+expect = [
+  { factor = "infl", way = "up", days = [0, 1095], why = "high inflation takes years to bring down" },
+  { factor = "rate10", way = "up", days = [0, 365], why = "the Fed keeps tightening while it is high" },
+]
+
+# --- rates, credit, the dollar
+[[signpost]]
+id = "curve_inverted"
+driver = "Rates and credit"
+name = "10-year minus 3-month Treasury"
+value = "T10Y3M"
+red = "< 0"
+yellow = "< 0.25"
+expect = [
+  { factor = "unemp", way = "up", days = [182, 1095], why = "an inverted curve has come a year or two before recessions" },
+  { factor = "rate10", way = "down", days = [182, 1095], why = "the Fed eases once the economy turns" },
+]
+
+[[signpost]]
+id = "fed_tightening"
+driver = "Rates and credit"
+name = "Fed funds, 6-month change (points)"
+value = "chg(DFF, 182)"
+red = "> 0.5"
+yellow = "> 0.25"
+expect = [
+  { factor = "unemp", way = "up", days = [365, 1095], why = "policy works with long lags: a year or two" },
+  { factor = "infl", way = "down", days = [365, 1095], why = "tightening brings inflation down with long lags" },
+  { factor = "fincond", way = "up", days = [0, 365], why = "higher rates tighten financial conditions" },
+]
+
+[[signpost]]
+id = "hy_widening"
+driver = "Rates and credit"
+name = "High-yield spread, 3-month change (points)"
+value = "chg(HY, 91)"
+red = "> 1.5"
+yellow = "> 0.75"
+group = "credit"
+expect = [
+  { factor = "unemp", way = "up", days = [0, 365], why = "credit stress comes before job losses" },
+  { factor = "fincond", way = "down", days = [0, 182], why = "stress spikes fade within months" },
+  { factor = "stocks", way = "wider", days = [0, 182], why = "credit stress comes with volatile markets" },
+  { factor = "fincond", way = "wider", days = [0, 182], why = "stress makes conditions swing" },
+]
+
+[[signpost]]
+id = "real_rates_high"
+driver = "Rates and credit"
+name = "10-year real yield"
+value = "DFII10"
+red = "> 2.5"
+yellow = "> 2.0"
+expect = [
+  { factor = "stocks", way = "down", days = [0, 1095], why = "high real yields weigh on what stocks are worth" },
+  { factor = "real10", way = "down", days = [182, 1095], why = "real yields this high have come back down" },
+]
+
+[[signpost]]
+id = "dollar_surge"
+driver = "Rates and credit"
+name = "Dollar index, 6-month change"
+value = "ret(DXY, 182)"
+red = "> 0.08"
+yellow = "> 0.05"
+expect = [
+  { factor = "dollar", way = "down", days = [182, 1095], why = "dollar surges come back" },
+  { factor = "fincond", way = "up", days = [0, 182], why = "a strong dollar tightens conditions for the world's borrowers" },
+  { factor = "dollar", way = "wider", days = [0, 182], why = "a fast dollar move comes with volatile currency markets" },
+]
+
+# --- AI capex and tech leadership
+[[signpost]]
+id = "semis_lag"
+driver = "AI capex and tech"
+name = "Semiconductors minus S&P 500, 3 months"
+value = "ret(SOX, 91) - ret(GSPC, 91)"
+red = "< -0.15"
+yellow = "< -0.08"
+group = "tech"
+expect = [
+  { factor = "stocks", way = "down", days = [0, 182], why = "the market's leaders cracking comes before broader weakness" },
+]
+
+[[signpost]]
+id = "ndx_drawdown"
+driver = "AI capex and tech"
+name = "Nasdaq-100 below its 1-year high"
+value = "dd(NDX, 365)"
+red = "< -0.20"
+yellow = "< -0.10"
+group = "tech"
+expect = [
+  { factor = "stocks", way = "wider", days = [0, 182], why = "after a deep fall, volatility stays high" },
+  { factor = "stocks", way = "up", days = [182, 1095], why = "the owner's belief (it was the buy-back rules): after a deep fall the years that follow pay more, as prices start lower" },
+]
+
+[[signpost]]
+id = "breadth_narrow"
+driver = "AI capex and tech"
+name = "Equal-weight minus cap-weight S&P 500, 6 months"
+value = "ret(RSP, 182) - ret(GSPC, 182)"
+red = "< -0.08"
+yellow = "< -0.04"
+expect = [
+  { factor = "stocks", way = "down", days = [0, 365], why = "a rally carried by a few names is fragile" },
+]
+
+# --- sentiment and trend
+[[signpost]]
+id = "trend_down"
+driver = "Sentiment and trend"
+name = "S&P 500 over its 200-day mean"
+value = "gap(GSPC, 290)"  # 200 trading days (the expression language counts calendar days)
+red = "< 0"
+yellow = "< 0.02"
+expect = [
+  { factor = "stocks", way = "down", days = [0, 182], why = "trends persist: below its long average a market tends to keep falling" },
+  { factor = "unemp", way = "up", days = [0, 365], why = "markets lead the economy" },
+  { factor = "stocks", way = "wider", days = [0, 182], why = "falling markets are more volatile" },
+]
+
+[[signpost]]
+id = "fear_extreme"
+driver = "Sentiment and trend"
+name = "Fear & Greed: fear"
+value = "FG"
+red = "< 25"
+yellow = "< 40"
+group = "vol"
+expect = [
+  { factor = "stocks", way = "up", days = [0, 30], why = "extreme fear marks short-term lows: rebounds within weeks" },
+  { factor = "stocks", way = "up", days = [30, 91], why = "the owner's belief (it was the fear ladder): in 2011-2026 the 20-60 days after extreme fear rose about twice as much as usual" },
+  { factor = "stocks", way = "wider", days = [0, 30], why = "fear comes with large daily swings" },
+]
+
+[[signpost]]
+id = "greed_extreme"
+driver = "Sentiment and trend"
+name = "Fear & Greed: greed"
+value = "FG"
+red = "> 75"
+yellow = "> 65"
+group = "vol"
+expect = [
+  { factor = "stocks", way = "down", days = [0, 30], why = "extreme greed comes before short-term pullbacks" },
+  { factor = "stocks", way = "narrower", days = [0, 30], why = "complacent markets move little" },
+]
+
+[[signpost]]
+id = "vix_high"
+driver = "Sentiment and trend"
+name = "VIX"
+value = "VIX"
+red = "> 30"
+yellow = "> 22"
+group = "vol"
+expect = [
+  { factor = "stocks", way = "up", days = [0, 182], why = "after fear spikes, those who hold on are paid: returns are higher" },
+  { factor = "fincond", way = "down", days = [0, 182], why = "stress spikes fade within months" },
+  { factor = "stocks", way = "wider", days = [0, 182], why = "volatility persists: high implied volatility comes before large moves" },
+]
+
+[[signpost]]
+id = "vix_inverted"
+driver = "Sentiment and trend"
+name = "VIX over VIX 3-month"
+value = "VIX / VIX3M"
+red = "> 1.0"
+yellow = "> 0.95"
+group = "vol"
+expect = [
+  { factor = "stocks", way = "up", days = [0, 90], why = "panic at its peak: rebounds within weeks" },
+  { factor = "fincond", way = "down", days = [0, 90], why = "stress spikes fade within months" },
+  { factor = "stocks", way = "wider", days = [0, 90], why = "panic volatility lasts for weeks" },
+]
+
+[[signpost]]
+id = "skew_high"
+driver = "Sentiment and trend"
+name = "Cboe SKEW"
+value = "SKEW"
+red = "> 150"
+yellow = "> 140"
+expect = [
+  { factor = "stocks", way = "down", days = [0, 90], why = "demand for crash protection comes before falls" },
+  { factor = "stocks", way = "wider", days = [0, 90], why = "crash protection priced high: larger moves expected" },
+]
+
+# --- crypto
+[[signpost]]
+id = "ahr_cheap"
+driver = "Crypto"
+name = "AHR999"
+value = "AHR999"
+red = "< 0.45"
+yellow = "< 0.8"
+
+[[signpost]]
+id = "btc_trend_down"
+driver = "Crypto"
+name = "Bitcoin over its 200-day mean"
+value = "gap(BTC, 200)"
+red = "< -0.10"
+yellow = "< 0"
+
+[[signpost]]
+id = "stables_shrinking"
+driver = "Crypto"
+name = "Stablecoins in circulation, 3-month change"
+value = "ret(STABLES, 91)"
+red = "< -0.05"
+yellow = "< 0"
+
+# --- valuation, liquidity, financial conditions, bond volatility, concentration (added 2026-10-29)
+[[signpost]]
+id = "valuation_rich"
+driver = "Valuation"
+name = "CAPE against its last 40 years (share below today)"
+value = "rank(CAPE, 14600)"
+red = ">= 0.9"
+yellow = ">= 0.8"
+group = "valuation"
+expect = [
+  { factor = "stocks", way = "down", days = [365, 1095], why = "expensive markets return less over the following years" },
+]
+
+[[signpost]]
+id = "erp_thin"
+driver = "Valuation"
+name = "Earnings yield less the real yield (points)"
+value = "100 / CAPE - DFII10"
+red = "< 1.0"
+yellow = "< 1.5"
+group = "valuation"
+expect = [
+  { factor = "stocks", way = "down", days = [365, 1095], why = "little earnings yield over bonds: less return ahead" },
+]
+
+[[signpost]]
+id = "liquidity_draining"
+driver = "Liquidity"
+name = "Fed liquidity (balance sheet less reverse repo and the Treasury's account), 3-month change"
+value = "ret(WALCL / 1000 - RRPONTSYD - WTREGEN / 1000, 91)"
+red = "< -0.05"
+yellow = "< -0.02"
+group = "liquidity"
+expect = [
+  { factor = "stocks", way = "down", days = [0, 182], why = "less central bank money weighs on risk assets" },
+  { factor = "fincond", way = "up", days = [0, 182], why = "less money in the system tightens conditions" },
+]
+
+[[signpost]]
+id = "conditions_tight"
+driver = "Rates and credit"
+name = "Financial conditions (NFCI)"
+value = "NFCI"
+red = "> 0"
+yellow = "> -0.3"
+group = "credit"
+expect = [
+  { factor = "unemp", way = "up", days = [0, 365], why = "tight conditions slow lending and hiring" },
+  { factor = "fincond", way = "down", days = [182, 1095], why = "stress fades over months to years" },
+  { factor = "stocks", way = "wider", days = [0, 365], why = "tight conditions come with volatile markets" },
+]
+
+[[signpost]]
+id = "bond_vol_high"
+driver = "Sentiment and trend"
+name = "MOVE (Treasury volatility)"
+value = "MOVE"
+red = "> 140"
+yellow = "> 120"
+group = "vol"
+expect = [
+  { factor = "fincond", way = "down", days = [0, 365], why = "stress spikes fade within months" },
+  { factor = "rate10", way = "wider", days = [0, 182], why = "rate volatility persists" },
+  { factor = "real10", way = "wider", days = [0, 182], why = "rate volatility persists" },
+]
+
+[[signpost]]
+id = "concentration_high"
+driver = "Breadth"
+name = "Nasdaq-100 against equal weight, its last 10 years (share below today)"
+value = "rank(NDX / RSP, 3650)"
+red = ">= 0.95"
+yellow = ">= 0.85"
+expect = [
+  { factor = "stocks", way = "down", days = [365, 1095], why = "a market this concentrated has done worse in the years after" },
+]
+
+

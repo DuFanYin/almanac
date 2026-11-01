@@ -1,0 +1,449 @@
+# Every series the board keeps, by id. source: yahoo (yfinance daily close), cboe (Cboe's daily index
+# history CSV), fred (fredgraph.csv, no key), cnn (Fear & Greed and, with `part`, its parts by the key CNN gives
+# each), llama (DefiLlama), multpl (multpl.com tables), archive (a
+# one-time history, by format: coinmetrics, csv, msci, worldbank; fetched while it has no values, never again),
+# derived (computed here from the series `from`, by `formula`: data/sources.py DERIVED).
+# lag: days from the day a value is dated to when it is published (monthly and weekly data), so it is used only
+# from then on. max_age: days without a new value before the series counts as stale (stale series light no signpost).
+# Checks (data/observations.py): min / max; positive (default for prices); max_jump (|log change| of a new day,
+# default 0.7 for prices); history_from drops earlier values; min_rows for an archive's answer.
+# backfill: what carries the series back before its first value, for history (signposts' fits, base rates); a
+# list, each reaching further back: { series = ID } scaled to meet it at the join, or { expr = "...", join =
+# "level" } taken as it is. The stored values stay as fetched.
+
+# --- the Market page's own indicators (server/app/private/market.py), kept daily here
+[GSPC]
+source = "yahoo"
+symbol = "^GSPC"
+name = "S&P 500"
+max_age = 5
+[DJI]
+source = "yahoo"
+symbol = "^DJI"
+name = "Dow Jones"
+max_age = 5
+[IXIC]
+source = "yahoo"
+symbol = "^IXIC"
+name = "Nasdaq Composite"
+max_age = 5
+[BTC]
+source = "yahoo"
+symbol = "BTC-USD"
+name = "Bitcoin"
+max_age = 3
+backfill = [{ series = "BTC_CM" }]  # Yahoo starts 2014-09-17
+[BTC_CM]
+source = "archive"
+format = "coinmetrics"
+symbol = "btc"
+until = "2014-12-31"
+name = "Bitcoin before 2015 (Coin Metrics)"
+min_rows = 1500  # a shorter answer is a partial one: not kept, asked again the next day
+[ETH]
+source = "yahoo"
+symbol = "ETH-USD"
+name = "Ethereum"
+max_age = 3
+[GOLD]
+source = "yahoo"
+symbol = "GC=F"
+name = "Gold (front future)"
+max_age = 5
+backfill = [{ series = "GOLD_WB" }]  # Yahoo starts 2000-08
+[GOLD_WB]
+source = "archive"
+format = "worldbank"
+url = "https://thedocs.worldbank.org/en/doc/5d903e848db1d1b83e0ec8f744e55570-0350012021/related/CMO-Historical-Data-Monthly.xlsx"
+column = "Gold"
+name = "Gold, monthly average before 2001 (World Bank)"
+min_rows = 700  # a shorter answer is a partial one: not kept, asked again the next day
+[FG]
+source = "cnn"
+name = "CNN Fear & Greed"
+max_age = 5
+backfill = [{ series = "FG_HIST", join = "level" }]  # CNN gives two years
+[FG_HIST]
+source = "archive"
+format = "csv"
+url = "https://raw.githubusercontent.com/whit3rabbit/fear-greed-data/main/fear-greed.csv"
+date = "Date"
+column = "Fear Greed"
+name = "CNN Fear & Greed from 2011 (collected on GitHub; the 478 days it shares with CNN agree within 0.005)"
+min = 1  # one 0 in 2014 is a gap in the collection
+min_rows = 3500  # a shorter answer is a partial one: not kept, asked again the next day
+[FG_MOMENTUM]
+source = "cnn"
+part = "market_momentum_sp500"
+name = "F&G: S&P 500 momentum"
+max_age = 5
+[FG_STRENGTH]
+source = "cnn"
+part = "stock_price_strength"
+name = "F&G: stock price strength"
+max_age = 5
+[FG_BREADTH]
+source = "cnn"
+part = "stock_price_breadth"
+name = "F&G: stock price breadth"
+max_age = 5
+[FG_PUTCALL]
+source = "cnn"
+part = "put_call_options"
+name = "F&G: put / call options"
+max_age = 5
+[FG_VIX]
+source = "cnn"
+part = "market_volatility_vix"
+name = "F&G: market volatility"
+max_age = 5
+[FG_SAFEHAVEN]
+source = "cnn"
+part = "safe_haven_demand"
+name = "F&G: safe haven demand"
+max_age = 5
+[FG_JUNK]
+source = "cnn"
+part = "junk_bond_demand"
+name = "F&G: junk bond demand"
+max_age = 5
+[AHR999]
+source = "derived"
+formula = "ahr999"
+from = "BTC"
+name = "AHR999"
+max_age = 3
+
+# --- prices
+[NDX]
+source = "yahoo"
+symbol = "^NDX"
+name = "Nasdaq-100"
+max_age = 5
+[SOX]
+source = "yahoo"
+symbol = "^SOX"
+name = "PHLX Semiconductor"
+max_age = 5
+# the funds of the questions that were research runs (questions.toml qqq_2y ...), each carried back by its index
+[QQQ]
+source = "yahoo"
+symbol = "QQQ"
+name = "Invesco QQQ (Nasdaq-100 ETF)"
+max_age = 5
+backfill = [{ series = "NDX" }]  # from 1999
+[SMH]
+source = "yahoo"
+symbol = "SMH"
+name = "VanEck Semiconductor ETF"
+max_age = 5
+backfill = [{ series = "SOX" }]  # from 2000
+[TLT]
+source = "yahoo"
+symbol = "TLT"
+name = "iShares 20+ Year Treasury ETF"
+max_age = 5  # from 2002; nothing kept here carries its duration further back
+[GLD]
+source = "yahoo"
+symbol = "GLD"
+name = "SPDR Gold Shares"
+max_age = 5
+backfill = [{ series = "GOLD" }]  # from 2004
+[IBIT]
+source = "yahoo"
+symbol = "IBIT"
+name = "iShares Bitcoin Trust"
+max_age = 5
+backfill = [{ series = "BTC" }]  # from 2024
+[XLK]
+source = "yahoo"
+symbol = "XLK"
+name = "Technology Select Sector ETF"
+max_age = 5
+[RSP]
+source = "yahoo"
+symbol = "RSP"
+name = "S&P 500 Equal Weight ETF"
+max_age = 5
+[RUT]
+source = "yahoo"
+symbol = "^RUT"
+name = "Russell 2000"
+max_age = 5
+[EFA]
+source = "yahoo"
+symbol = "EFA"
+name = "MSCI EAFE ETF (outside the US)"
+max_age = 5
+backfill = [{ series = "EAFE_MSCI" }]  # the ETF starts 2001-08
+[EAFE_MSCI]
+source = "archive"
+format = "msci"
+symbol = "990300"
+until = "2001-12-31"
+name = "MSCI EAFE index from 1997 (MSCI)"
+min_rows = 1200  # a shorter answer is a partial one: not kept, asked again the next day
+[OIL]
+source = "yahoo"
+symbol = "CL=F"
+name = "WTI crude (front future)"
+max_age = 5
+positive = false  # went below 0 on 2020-04-20
+[DXY]
+source = "yahoo"
+symbol = "DX-Y.NYB"
+name = "US Dollar Index"
+max_age = 5
+
+# --- volatility indexes (Cboe)
+[VIX]
+source = "cboe"
+symbol = "VIX"
+name = "VIX"
+max_age = 5
+[VIX9D]
+source = "cboe"
+symbol = "VIX9D"
+name = "VIX 9-day"
+max_age = 5
+[VIX3M]
+source = "cboe"
+symbol = "VIX3M"
+name = "VIX 3-month"
+max_age = 5
+[SKEW]
+source = "cboe"
+symbol = "SKEW"
+name = "Cboe SKEW"
+max_age = 5
+
+# --- rates and credit (FRED)
+[DGS10]
+source = "fred"
+symbol = "DGS10"
+name = "10-year Treasury yield"
+max_age = 7
+[UST10_TR]
+source = "derived"
+formula = "par_bond"  # each day a 10-year bond at par at that day's yield, coupons included
+from = "DGS10"
+years = 10
+name = "10-year Treasury, total return (from its yield)"
+positive = true
+max_age = 7
+[DGS2]
+source = "fred"
+symbol = "DGS2"
+name = "2-year Treasury yield"
+max_age = 7
+[DGS3MO]
+source = "fred"
+symbol = "DGS3MO"
+name = "3-month Treasury yield"
+max_age = 7
+[DTB3]
+source = "fred"
+symbol = "DTB3"
+name = "3-month bill, secondary market"
+max_age = 7
+[T10Y3M]
+source = "fred"
+symbol = "T10Y3M"
+name = "10-year minus 3-month"
+max_age = 7
+[HY]
+source = "fred"
+symbol = "BAMLH0A0HYM2"
+name = "High-yield spread (OAS)"
+max_age = 7
+backfill = [{ series = "BAA10Y" }]  # FRED keeps only the last three years of the ICE series
+[BAA10Y]
+source = "fred"
+symbol = "BAA10Y"
+name = "Moody's Baa minus 10-year Treasury"
+max_age = 7
+[DFF]
+source = "fred"
+symbol = "DFF"
+name = "Fed funds effective rate"
+max_age = 7
+[T5YIE]
+source = "fred"
+symbol = "T5YIE"
+name = "5-year breakeven inflation"
+max_age = 7
+[DFII10]
+source = "fred"
+symbol = "DFII10"
+name = "10-year real yield"
+max_age = 7
+backfill = [{ series = "TIPS10_FED", join = "level" }, { expr = "DGS10 - yoy(CPI) * 100", join = "level" }]  # FRED from 2003; the Fed's TIPS curve from 1999; before, the 10-year less CPI inflation
+[TIPS10_FED]
+source = "archive"
+format = "csv"
+url = "https://www.federalreserve.gov/data/yield-curve-tables/feds200805.csv"
+date = "Date"
+column = "TIPSPY10"
+name = "10-year TIPS par yield from 1999 (Federal Reserve, Gurkaynak-Sack-Wright)"
+min_rows = 6000  # a shorter answer is a partial one: not kept, asked again the next day
+
+# --- the economy (FRED; monthly values are dated the first of their month and published weeks later)
+[CPI]
+source = "fred"
+symbol = "CPIAUCSL"
+lag = 45
+name = "CPI"
+max_age = 80
+[CORE_PCE]
+source = "fred"
+symbol = "PCEPILFE"
+lag = 62  # out around the end of the next month
+name = "Core PCE prices"
+max_age = 80
+[UNRATE]
+source = "fred"
+symbol = "UNRATE"
+lag = 40  # out on the first Friday after the month, up to the 10th
+name = "Unemployment rate"
+max_age = 80
+[PAYEMS]
+source = "fred"
+symbol = "PAYEMS"
+lag = 40
+name = "Nonfarm payrolls"
+max_age = 80
+[INDPRO]
+source = "fred"
+symbol = "INDPRO"
+lag = 47
+name = "Industrial production"
+max_age = 80
+[ICSA]
+source = "fred"
+symbol = "ICSA"
+lag = 5
+name = "Initial jobless claims"
+max_age = 14
+[SAHM]
+source = "fred"
+symbol = "SAHMREALTIME"
+lag = 40
+name = "Sahm rule (real time)"
+max_age = 80
+[USREC]
+source = "fred"
+symbol = "USREC"
+lag = 365
+name = "NBER recession months"
+max_age = 400
+
+# --- crypto
+[STABLES]
+source = "llama"
+name = "Stablecoins in circulation (USD)"
+max_age = 3
+history_from = "2018-02-01"  # DefiLlama's coverage grew x272 on 2018-01-11: before, the total means nothing
+
+# --- valuation, liquidity, financial conditions, bond volatility, the home currency (added 2026-10-29)
+[CAPE]
+source = "multpl"
+url = "https://www.multpl.com/shiller-pe/table/by-month"
+name = "S&P 500 CAPE (Shiller)"
+lag = 31  # a month's value is its average price: known once the month is over
+max_age = 70
+min = 3
+max = 80
+[SPDIV]
+source = "multpl"
+dated = "end"  # the table dates each month by its last day
+url = "https://www.multpl.com/s-p-500-dividend-yield/table/by-month"
+name = "S&P 500 dividend yield"
+lag = 1
+max_age = 70
+min = 0.2
+max = 15
+# the funds with their dividends reinvested (Yahoo's Adj Close): beside each fund's price, how much its dividends
+# added, which sets each stock class's yield against the S&P 500's (config/asset_classes.toml dividend)
+[QQQ_TR]
+source = "yahoo"
+symbol = "QQQ"
+adjusted = true
+name = "Invesco QQQ, dividends reinvested"
+max_age = 5
+[SMH_TR]
+source = "yahoo"
+symbol = "SMH"
+adjusted = true
+name = "VanEck Semiconductor ETF, dividends reinvested"
+max_age = 5
+[XLK_TR]
+source = "yahoo"
+symbol = "XLK"
+adjusted = true
+name = "Technology Select Sector ETF, dividends reinvested"
+max_age = 5
+[RSP_TR]
+source = "yahoo"
+symbol = "RSP"
+adjusted = true
+name = "S&P 500 Equal Weight ETF, dividends reinvested"
+max_age = 5
+[EFA_TR]
+source = "yahoo"
+symbol = "EFA"
+adjusted = true
+name = "MSCI EAFE ETF, dividends reinvested"
+max_age = 5
+[WALCL]
+source = "fred"
+symbol = "WALCL"
+name = "Fed balance sheet ($ million)"
+lag = 1
+max_age = 12
+[RRPONTSYD]
+source = "fred"
+symbol = "RRPONTSYD"
+name = "Fed reverse repo ($ billion)"
+lag = 1
+max_age = 7
+[WTREGEN]
+source = "fred"
+symbol = "WTREGEN"
+name = "Treasury General Account ($ million)"
+lag = 1
+max_age = 12
+[NFCI]
+source = "fred"
+symbol = "NFCI"
+name = "Chicago Fed financial conditions (NFCI; above 0 tighter than average)"
+lag = 5  # dated the Friday, out the next Wednesday
+max_age = 14
+[MOVE]
+source = "yahoo"
+symbol = "^MOVE"
+name = "MOVE (Treasury volatility)"
+max_age = 5
+[USDSGD]
+source = "yahoo"
+symbol = "SGD=X"
+name = "USD/SGD"
+max_age = 5
+
+# --- texts read into numbers by the LLM (config/readings.toml, steps/readings.py): only from 2026-10-30 on, never
+# read back into history (the model knows what came after); each value the mean of the day's readings, -2 to 2
+[FED_HAWK]
+source = "reading"
+name = "Fed: how hawkish its releases and speeches read (LLM, -2 to 2)"
+max_age = 60
+[AI_CAPEX]
+source = "reading"
+name = "AI investment in the news: cut or raised (LLM, -2 to 2)"
+max_age = 14
+[AI_CAPEX_RELEASES]
+source = "reading"
+name = "AI investment in the companies' earnings releases: cut or raised (LLM, -2 to 2)"
+max_age = 120
+[NEWS_MOOD]
+source = "reading"
+name = "News mood on markets and the economy (LLM, -2 to 2)"
+max_age = 3

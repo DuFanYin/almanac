@@ -1,7 +1,9 @@
 .venv/
 __pycache__/
 *.pyc
-local/
+# yours (rules, holdings, settings) and what the board makes: never in git
+/local/
+/data/
 .env
 
 # runtime cache (SQLite + WAL files)
@@ -16,3 +18,5 @@ cache.db-shm
 htmlcov/
 
 .DS_Store  
+# what the research app (removed 2026-10-29) wrote: its cache and runs, kept on the machine
+/outputs/

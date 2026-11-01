@@ -1,0 +1,166 @@
+/* The page's design tokens and shared components, linked by index.html at s/<version>/ui.css.
+ *
+ * Rule: chrome is grey (zinc on black; the page is dark only); colour only carries data. --ui-c1..c4 tell series apart
+ * (same order everywhere); --good / --bad / --warn say good or bad for the owner (not up or down), and the older
+ * names --ui-up / --ui-down / --ui-warning point at them.
+ *
+ * Components: .ui-header, .ui-tabs / .ui-seg, .ui-card,
+ * .ui-kpi, .ui-legend, .ui-chart, .ui-tip. Chart behaviour lives in design/chart.js.
+ */
+
+/* Geist and Geist Mono (Vercel, SIL OFL 1.1: fonts/OFL.txt), from the npm package geist@1.7.2, variable weights.
+ * The url is relative to the stylesheet: the homepage copies fonts/ next to its style.css, the server serves them
+ * next to ui.css; where they are not (the finance report, a standalone file) the system fonts stand in. */
+@font-face { font-family: "Geist"; src: url("fonts/Geist-Variable.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Geist Mono"; src: url("fonts/GeistMono-Variable.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+
+:root {
+  color-scheme: dark;
+
+  /* Black Zinc: Tailwind's zinc greys on a black page, the only place greys are defined. The site is dark only. */
+  --ui-grey-50: #fafafa; --ui-grey-100: #f4f4f5; --ui-grey-200: #e4e4e7; --ui-grey-300: #d4d4d8;
+  --ui-grey-400: #a1a1aa; --ui-grey-500: #71717a; --ui-grey-600: #52525b; --ui-grey-700: #3f3f46;
+  --ui-grey-800: #27272a; --ui-grey-900: #18181b; --ui-grey-950: #000000;
+
+  --ui-page: var(--ui-grey-950);
+  --ui-surface: var(--ui-grey-900);
+  --ui-surface-2: var(--ui-grey-800);
+  --ui-ink: var(--ui-grey-100);
+  --ui-ink-2: var(--ui-grey-300);
+  --ui-muted: var(--ui-grey-400);
+  --ui-grid: var(--ui-grey-800);
+  --ui-axis: var(--ui-grey-700);
+
+  --ui-c1: #3987e5;
+  --ui-c2: #d95926;
+  --ui-c3: #199e70;
+  --ui-c4: #c98500;
+  --good: #c6f24e;  /* lime */
+  --bad: #ff5a5f;   /* >= 4.5:1 on the panel and on a hovered row */
+  --warn: #e5a93b;
+  --ui-up: var(--good);
+  --ui-down: var(--bad);
+  --ui-warning: var(--warn);
+
+  --ui-font: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  --ui-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;  /* small facts: languages, dates, counts */
+  /* type scale */
+  --ui-text-2xs: 11px;  /* axis labels, tags */
+  --ui-text-xs: 12px;   /* labels, notes, tooltips, table heads */
+  --ui-text-sm: 13px;   /* tables, legends, controls */
+  --ui-text: 14px;      /* body */
+  --ui-text-lg: 15px;   /* card titles */
+  --ui-text-xl: 20px;   /* page and card titles */
+  --ui-text-kpi: 24px;  /* headline numbers (a board page's answer figure: 30-32px) */
+
+  --ui-radius: .75rem;
+  --ui-gap: 8px;        /* between cards */
+  --ui-gutter: 16px;    /* page side padding */
+  --ui-dot: var(--ui-grey-700);  /* the faint dot that leads home (and, on the homepage, to the private pages) */
+  --ui-max-width: 76rem;
+}
+@media (min-width: 640px) { :root { --ui-gutter: 24px; } }
+
+/* Page header, shared by all the pages: same height, spacing and side padding, so
+ * switching pages does not move anything. The homepage puts its name in .ui-title and its
+ * links on the right; the private pages put their switcher (Status, Finance, Market, Visitors)
+ * on the right, page-specific controls before it and the dot back to the homepage (.ui-home) last. */
+.ui-header { position: sticky; top: 0; z-index: 5; background: var(--ui-page); }
+.ui-header-in {
+  max-width: var(--ui-max-width); margin: 0 auto; padding: 28px var(--ui-gutter) 16px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+}
+/* the left block is always two lines tall (title + sub line), so a page without a sub line (Home)
+ * has the same header height as the others */
+.ui-header-in > :first-child { min-height: calc(var(--ui-text-xl) * 1.3 + 2px + var(--ui-text-sm) * 1.4); }
+.ui-header h1, .ui-title { margin: 0; font: 600 var(--ui-text-xl)/1.3 var(--ui-font); letter-spacing: -.01em; color: var(--ui-ink); text-decoration: none; }
+.ui-header .ui-sub { margin: 2px 0 0; font: 400 var(--ui-text-sm)/1.4 var(--ui-font); color: var(--ui-ink-2); }
+.ui-header-right { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 28px; }
+/* optional second header row for in-page switchers (Finance), right-aligned under the page switcher */
+.ui-header-tools {
+  max-width: var(--ui-max-width); margin: -6px auto 0; padding: 0 var(--ui-gutter) 14px;
+  display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px 48px;  /* groups of text switchers: space tells them apart */
+}
+.ui-links { display: flex; gap: 20px; font: 400 var(--ui-text-sm)/1.5 var(--ui-font); }
+.ui-links a { color: var(--ui-ink-2); text-decoration: none; transition: color .15s; }
+.ui-links a:hover { color: var(--ui-ink); }
+
+/* the way back to the homepage on the private pages: the homepage's faint dot, its right edge on the page's */
+.ui-home { display: inline-flex; padding: 6px; margin-right: -6px; border-radius: 999px; color: var(--ui-dot); transition: color .15s; }
+.ui-home:hover, .ui-home:focus-visible { color: var(--ui-grey-500); }
+.ui-home svg { display: block; }
+
+/* Switchers in plain text on the ground (design/STYLE.md): .ui-tabs links between pages, .ui-seg buttons switch a
+ * view in place. Grey, the current one white with a 2px underline; no capsule, no background. */
+.ui-tabs, .ui-seg { display: inline-flex; gap: 22px; font: 500 var(--ui-text-sm)/1.5 var(--ui-font); }
+.ui-tabs a, .ui-seg button {
+  padding: .25rem 0; border: 0; border-radius: 0; background: transparent; color: var(--ui-ink-2);
+  font: inherit; text-decoration: none; cursor: pointer; transition: color .15s, box-shadow .15s;
+}
+.ui-tabs a:hover, .ui-seg button:hover { color: var(--ui-ink); }
+.ui-tabs a[aria-current="page"], .ui-seg button[aria-pressed="true"], .ui-seg button[aria-selected="true"] { color: var(--ui-ink); box-shadow: inset 0 -2px 0 var(--ui-ink); }
+@media (max-width: 30rem) {  /* six pages on a phone: smaller, and the switcher scrolls rather than widen the page */
+  .ui-tabs { max-width: 100%; gap: 14px; overflow-x: auto; scrollbar-width: none; font-size: var(--ui-text-xs); }
+  .ui-tabs a { flex: none; }
+  /* the header in two rows, not three (it stays on screen): the title with the dot home at its right, then the
+   * page's own controls and the switcher, full width */
+  .ui-header-in { padding-top: 14px; padding-bottom: 8px; row-gap: 6px; }
+  .ui-header-right { display: contents; }
+  .ui-header-in > :first-child { flex: 1 1 calc(100% - 48px); min-width: 0; }  /* the first row: the title and the dot only */
+  .ui-home { order: 1; align-self: flex-start; }
+  .ui-header-right > :not(.ui-home) { order: 2; }
+  .ui-header-right > .ui-tabs { order: 3; flex-basis: 100%; }
+}
+.ui-seg.small { gap: 16px; font-size: var(--ui-text-xs); }
+
+
+/* Cards and headline numbers */
+.ui-card { background: var(--ui-surface); border-radius: var(--ui-radius); padding: 14px 16px; min-width: 0; }
+.ui-card h2 { margin: 0 0 4px; font-size: var(--ui-text-lg); font-weight: 600; }
+.ui-card h2 small { margin-left: 6px; font-size: var(--ui-text-sm); font-weight: 400; color: var(--ui-ink-2); }
+.ui-card h3 { margin: 14px 0 4px; font-size: var(--ui-text-sm); font-weight: 600; color: var(--ui-ink-2); }
+.ui-note { margin: 0 0 10px; font-size: var(--ui-text-xs); color: var(--ui-muted); }
+
+.ui-kpi { display: flex; flex-direction: column; min-width: 0; padding: 12px 14px; background: var(--ui-surface); border-radius: var(--ui-radius); }
+.ui-kpi-label { font-size: var(--ui-text-xs); color: var(--ui-ink-2); }
+.ui-kpi-value { margin: 4px 0 2px; font-size: var(--ui-text-kpi); font-weight: 500; line-height: 1.2; letter-spacing: -.01em; white-space: nowrap; }
+.ui-kpi-value small { margin-left: .1em; font-size: .55em; font-weight: 500; color: var(--ui-ink-2); }
+.ui-kpi-note { min-height: 1.1rem; font-size: var(--ui-text-xs); color: var(--ui-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.ui-up { color: var(--ui-up); }
+.ui-down { color: var(--ui-down); }
+
+/* Legends: a swatch per series; a line key for lines, a box key for areas and bars */
+.ui-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; padding: 0; list-style: none; font-size: var(--ui-text-sm); color: var(--ui-ink-2); }
+.ui-legend > * { display: inline-flex; align-items: center; gap: 6px; }
+.ui-legend b { color: var(--ui-ink); font-weight: 600; }
+.ui-key { flex: none; width: 14px; height: 2px; border-radius: 1px; background: currentColor; }
+.ui-key.box { width: 10px; height: 10px; border-radius: 2px; }
+.ui-key.dash { height: 0; border-top: 1.5px dashed var(--ui-muted); background: none; border-radius: 0; }
+
+/* SVG charts drawn with design/chart.js */
+.ui-chart { position: relative; width: 100%; }
+.ui-chart svg { display: block; width: 100%; overflow: visible; }
+.ui-chart svg:focus { outline: none; }
+.ui-chart svg:focus-visible { outline: 2px solid var(--ui-c1); outline-offset: 4px; border-radius: 4px; }
+.ui-chart text { fill: var(--ui-muted); font-size: var(--ui-text-2xs); font-variant-numeric: tabular-nums; }
+.ui-chart text.end, .ui-chart text.label { fill: var(--ui-ink-2); }
+.ui-chart text.end { font-weight: 500; }
+.ui-chart .gridline { stroke: var(--ui-grid); stroke-width: 1; }
+.ui-chart .baseline { stroke: var(--ui-axis); stroke-width: 1; }
+.ui-chart .cross { stroke: var(--ui-muted); stroke-width: 1; }
+.ui-chart .leader { stroke: var(--ui-axis); stroke-width: 1; }
+.ui-chart .bar { transition: filter .1s; }
+.ui-chart .bar.hl { filter: brightness(1.15); }
+
+/* The one floating tooltip (created by design/chart.js) */
+.ui-tip {
+  position: fixed; z-index: 10; pointer-events: none; min-width: 9rem;
+  padding: 7px 10px; border-radius: 8px; background: var(--ui-page); color: var(--ui-ink);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .12); font: 400 var(--ui-text-xs)/1.5 var(--ui-font); font-variant-numeric: tabular-nums;
+}
+.ui-tip .t { margin-bottom: 3px; color: var(--ui-ink-2); }
+.ui-tip .r { display: flex; align-items: center; gap: 6px; }
+.ui-tip .r span { flex: 1; color: var(--ui-ink-2); }
+.ui-tip .r b { margin-left: 12px; font-weight: 600; }
+.ui-tip .ui-key { width: 8px; height: 8px; border-radius: 2px; }

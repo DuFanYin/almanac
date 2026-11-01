@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Almanac</title>
+  <link rel="icon" href="static/favicon.png">
+  <link rel="stylesheet" href="static/ui.css">
+  <link rel="stylesheet" href="static/style.css">
+  <link rel="stylesheet" href="static/scenarios.css">
+  <link rel="modulepreload" href="static/js/scenarios/main.js">
+  <link rel="modulepreload" href="static/js/dom.js">
+</head>
+<body>
+  <header class="ui-header">
+    <div class="ui-header-in">
+      <div>
+        <h1>Almanac</h1>
+        <p class="ui-sub" id="sub">&nbsp;</p>
+      </div>
+      <div class="ui-header-right"><!--header--></div>
+    </div>
+  </header>
+
+  <main id="app">
+    <p class="empty" id="empty" hidden>No data yet: the daily job has not run (<code>.venv/bin/python -m src.board.run</code> in this project's folder).</p>
+
+    <!-- the views, one at a time: the overview first, the rest a tab away; the choice is in the address (#map) -->
+    <nav class="ui-seg pages" aria-label="Views" data-pages></nav>
+
+    <!-- the overview: how does today's world stand against usual, on both sides, and is there anything to do? -->
+    <section class="page overview" id="overview" data-page="overview" aria-labelledby="finding-h">
+      <!-- read in order: the verdict and what to do (a sentence and a list) beside one length's spread of returns and
+           its figures; every length side by side, a column a length and a row a measure, so they read across; what
+           is lit -->
+      <div class="ov-top">
+        <div class="ov-lead">
+          <h2 class="finding" id="finding-h" data-finding>&nbsp;</h2>
+          <p class="ov-label" data-todo-h></p>
+          <ul class="todos" aria-label="To do" data-todo></ul>
+        </div>
+        <section class="ov-world" aria-labelledby="world-h">
+          <h3 class="ov-h" id="world-h" data-world-h>Your targets across the futures</h3>
+          <div data-world></div>
+        </section>
+      </div>
+      <section class="ov-block" aria-labelledby="len-h">
+        <h3 class="ov-h" id="len-h">Every length, for your targets</h3>
+        <div class="len-wrap" data-lengths></div>
+      </section>
+      <section class="ov-block last" aria-label="Indicators lit today">
+        <div data-signals></div>
+      </section>
+    </section>
+
+    <!-- the scenarios in full: each with its two sides and your mix in it, then every asset class in each -->
+    <!-- one length at a time: its five scenarios side by side, worst to best for the S&P 500, a row a measure -->
+    <section class="page" id="scenarios" data-page="scenarios" aria-labelledby="view-h" hidden>
+      <div class="page-top">
+        <h2 class="page-h" id="view-h">Scenarios</h2>
+        <div class="ui-seg small" role="tablist" aria-label="Lengths" data-htabs></div>
+      </div>
+      <p class="sc-finding" data-hsub></p>
+      <div data-futures></div>
+    </section>
+
+    <!-- every forecast: its two sides, computed and the LLM's panel, and the final between them -->
+    <section class="page view" id="view" data-page="forecasts" aria-labelledby="fc-page-h" hidden>
+      <h2 class="page-h" id="fc-page-h">Forecasts</h2>
+      <p class="sub">The factors that describe the world, at each length it is read at: the chance each ends in history's lowest or highest quarter, with the LLM's scenarios, and in small type from the simulation alone (today's indicators, before the LLM).</p>
+      <div data-factors></div>
+      <h3 class="sub-h">Other forecasts</h3>
+      <p class="sub" data-finding></p>
+      <div class="drivers" data-figures></div>
+      <div class="sides" data-table></div>
+    </section>
+
+    <!-- how it is made: the world from its evidence to the scenarios, you on the right, the actions between -->
+    <section class="page made" id="map" data-page="map" aria-labelledby="map-h" hidden>
+      <h2 class="page-h" id="map-h">How the numbers are made</h2>
+      <p class="sub">From left to right: data, indicators, forecasts, scenarios, actions, and your settings on the far right. Click anything for its details and sources.</p>
+      <div data-map></div>
+    </section>
+
+    <!-- the system: every stage of the day, what feeds what, where the LLM enters, how each went today -->
+    <section class="page system" id="system" data-page="system" aria-labelledby="system-h" hidden>
+      <h2 class="page-h" id="system-h">How the system works</h2>
+      <p class="sub">Each stage of the day, left to right. Grey border: computed from data. Dashed: the LLM writes it, and it counts only after its check. Filled: yours. The dot: green ran today, red failed, grey not asked in this run. Click a stage for what it does, what it reads and what reads it.</p>
+      <div data-system></div>
+    </section>
+
+    <!-- with holdings: the plan, the holdings on each horizon's futures, against your targets -->
+    <section class="page holdings" id="holdings" data-page="holdings" aria-labelledby="holdings-h" hidden>
+      <h2 class="page-h" id="holdings-h">Holdings</h2>
+      <p class="sub" data-none>No holdings file. Once IBKR is synced, this compares your account with your targets.</p>
+      <div class="pair" data-held>
+        <section class="card" id="plan" aria-labelledby="plan-card-h">
+          <h4 class="sub-h first" id="plan-card-h">The plan</h4>
+          <p class="sub" data-sub></p>
+          <div class="mix" data-mix></div>
+          <table class="moves" data-moves></table>
+          <p class="foot" data-foot></p>
+        </section>
+        <section class="card" id="under" aria-labelledby="under-h">
+          <h4 class="sub-h first" id="under-h">Ahead</h4>
+          <p class="sub">What you hold now, over the next 3 months, 1 year and 3 years</p>
+          <div data-bars></div>
+        </section>
+      </div>
+      <section class="against" id="against" aria-labelledby="against-h" hidden>
+        <h4 class="sub-h" id="against-h"></h4>
+        <p class="sub" data-sub></p>
+        <div class="split">
+          <div data-classes></div>
+          <div data-figures></div>
+        </div>
+      </section>
+    </section>
+
+    <!-- forecasts the LLM proposes, for the owner to adopt or reject -->
+    <section class="page proposals" id="proposals" data-page="proposals" aria-labelledby="proposals-h" hidden>
+      <h2 class="page-h" id="proposals-h">Proposals</h2>
+      <p class="sub">What the LLM suggests adding: new forecasts (weekly) and new factors (every four weeks). Each is checked against data first; you adopt or reject it, or, after three days, the LLM decides for you; you can withdraw anything adopted.</p>
+      <div class="props" data-list></div>
+      <div data-more></div>
+    </section>
+
+    <!-- the record: scores, what the decisions rest on, history; the week; the indicators -->
+    <section class="page reference" id="reference" data-page="record" aria-labelledby="reference-h" hidden>
+      <div class="ref-head">
+        <h2 class="page-h" id="reference-h">Record</h2>
+        <div class="ui-seg small" role="tablist" aria-label="Record views" data-tabs></div>
+      </div>
+      <div data-panel></div>
+    </section>
+
+    <footer class="sc-foot" id="foot"></footer>
+  </main>
+
+  <!-- the details of whatever is clicked; closes on Esc or its button -->
+  <aside class="drawer inspector" id="inspector" aria-live="polite" aria-label="Detail" hidden></aside>
+
+  <dialog id="lineage" class="wide" aria-labelledby="lineage-title">
+    <div class="dlg-head"><h2 id="lineage-title">Sources</h2><button type="button" class="btn bare" data-close>Close</button></div>
+    <p class="lede">How this number was calculated: the number on the right, its inputs to the left, back to the raw data.</p>
+    <div data-tree></div>
+    <div class="dag-raw" data-raw></div>
+  </dialog>
+
+  <script id="initial" type="application/json">null</script>
+  <script type="module" src="static/js/scenarios/main.js"></script>
+  <!-- opens from the browser's copy, fetched again behind it (sw.js) -->
+  <script type="module" src="static/js/fresh.js"></script>
+</body>
+</html>

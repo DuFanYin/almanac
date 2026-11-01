@@ -1,9 +1,0 @@
-fastapi
-uvicorn
-httpx
-langgraph
-pydantic
-pytest
-yfinance
-python-dotenv
-ruff

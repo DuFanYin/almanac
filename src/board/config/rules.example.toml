@@ -1,0 +1,80 @@
+# An example of your preferences, used when there is no local/rules.toml: copy it there and make it your own. The
+# risk level, the targets and their caps set what the decision step (model/decide.py) leans and guards; a rule
+# written in advance is for what the step does not do (a regular purchase, a reminder) and only suggests: it lists
+# what to do this period on the page and in one message; nothing places orders. Without holdings, a rule that reads a
+# share cannot be judged and stays off. A rule reads values, signposts, dates and shares, never a forecast: a belief
+# ("buy after a fall") is a signpost's expectation (config/signposts.toml), sized by the data.
+
+# [decide] (optional, a table of its own): sense, the data's part of a lean (the walk's without it: data/walk.json);
+# llm_sense, the LLM's part, its scenarios against the simulation (1.0 without it: a score of 0.05 standard
+# deviations leans a class its whole tilt; 0: the LLM acts only through the guardrails).
+
+profile = 3  # the investing style, 1 cautious to 5 bold (the styles in config/asset_classes.toml): the suggested mix, the default band and step
+
+# The categories the account is split into, in display order (each symbol is put in one under [symbols]). target: share of the account; cap: a ceiling. class: the asset class
+# (config/asset_classes.toml) whose stand-in describes the category in history.
+[categories.us_stocks]
+label = "US stocks"
+class = "us_large"
+target = 0.45
+cap = 0.55
+
+[categories.intl]
+label = "Stocks outside the US"
+class = "intl"
+target = 0.15
+
+[categories.bonds]
+label = "Treasuries"
+class = "treasuries"
+target = 0.25
+
+[categories.cash]
+label = "Cash"
+class = "cash"
+target = 0.10
+
+[categories.gold]
+label = "Gold"
+class = "gold"
+target = 0.05
+
+# Each symbol's category (an option counts under its underlying); a symbol not here is unclassified.
+[symbols]
+VOO = "us_stocks"
+VXUS = "intl"
+IEF = "bonds"
+SGOV = "cash"
+GLD = "gold"
+
+[pace]
+review = "2027-12-31"  # look at the plan again
+
+# Conditions named once, used by several rules. Kinds:
+#   { signpost = "id", state = ["red"] }                 a signpost's state today
+#   { value = "expr", op = "<", than = 0.45 }            an expression on today's values (core/expr.py)
+#   { share = "us_stocks", op = ">", than = "us_stocks_cap" }    an account share against a target, a cap or a number
+#   { date = ">=", than = "2028-03-01" }
+[conditions]
+stocks_over_cap = { share = "us_stocks", op = ">", than = "us_stocks_cap" }
+review_due = { date = ">=", than = "review" }
+
+# leans: "safer" (a sale, cash, a pause) or "bolder" (a purchase): how skipping it reads (model/behaviour.py).
+# A rule fires at most once per period (week, month, quarter, once) while `all` hold, at least one of `any`
+# holds (when given) and every `none` is known not to hold. period = "event": once on the day it starts to
+# hold, again only after it has not held rearm_days running (default 20). amount: how the suggested amount is
+# worked out (model/portfolio.py), with holdings only.
+[[rule]]
+id = "stocks_cap"
+leans = "safer"
+explain = "When US stocks grow above their cap, say so (the decision step keeps the decided share under it)."
+title = "US stocks above their cap"
+period = "month"
+all = ["stocks_over_cap"]
+
+[[rule]]
+id = "plan_review"
+explain = "Once a year, look at the targets and the risk level again."
+title = "Review the targets and the risk level"
+period = "once"
+all = ["review_due"]

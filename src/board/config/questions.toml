@@ -1,0 +1,222 @@
+# The questions the board gives probabilities for. Each splits one observable outcome into buckets that
+# cannot both happen and cover everything, so a question resolves from data by itself.
+# A question's buckets and spec are frozen in the database when it is registered: editing one here changes
+# only questions registered after (give it a new id to restart it).
+#
+# kind = "path": a series from the registration day to `closes`. Buckets are tried in order, the first whose
+#   conditions all hold wins. On the window: dd (deepest fall from a running high, <= 0), ret (end / start - 1),
+#   hi, lo (highest / lowest over start - 1), px_end, px_hi, px_lo (the prices themselves).
+#   Base rate: every window of the same length in the series' history, scaled to the start price.
+# kind = "kalshi": a Kalshi event; buckets map Kalshi's markets; it resolves when Kalshi settles them.
+#   `series` + `next`: one question per upcoming event of that series (the next FOMC meetings).
+# kind = "rolling": a path question opened every day over the next `days` (calendar days); the page shows the
+#   newest, every one is scored. For signals whose effect lasts weeks (sentiment, volatility): no LLM panel.
+# kind = "period": repeats every month or quarter (registered in the week before the period starts);
+#   up / down of a series over the period, or a level at its end. Base rate: every past period.
+# headline: the figure the page leads with for the questions that drive the plan (the sum of these buckets).
+# tone: how an outcome reads for the holdings, -2 (bad) to 2 (good); the page colours it.
+# Each probability is read off the world (src/board/model/world.py): the question's own outcome after every week of
+#   history since 1971, weighted as the world weighs that week over the days the question has left; with a Kalshi
+#   market, pooled with it by the weights below; the owner's view (from the page) pooled on top by `own` (a question
+#   may set its own). Kept beside it: history unweighted (base), the data's world (math), with the LLM's futures
+#   (futures), the final (model), and the same without the LLM (no_llm).
+[weights]
+own = 0.2
+
+[weights.with_market]
+market = 0.65
+base = 0.35
+
+[weights.without_market]
+base = 1.0
+
+
+[spx_2y]
+title = "S&P 500 over two years"
+headline = { buckets = ["crash", "bear"], short = "S&P 500 bear", label = "S&P 500 falls 20% or more from a high", by = "by Oct 2028" }
+kind = "path"
+series = "GSPC"
+closes = "2028-10-31"
+detail = "From the close on the registration day to the close on 2028-10-31, price index (no dividends)."
+buckets = [
+    { id = "crash", label = "Falls 30% or more from a high", when = ["dd <= -0.30"], tone = -2 },
+    { id = "bear", label = "Falls 20-30% from a high", when = ["dd <= -0.20"], tone = -1 },
+    { id = "down", label = "No bear market, ends lower", when = ["ret < 0"], tone = -0.5 },
+    { id = "up", label = "Ends 0-25% higher", when = ["ret < 0.25"], tone = 1 },
+    { id = "boom", label = "Ends 25% or more higher", when = [], tone = 2 },
+]
+
+[spx_4w]
+title = "S&P 500 over the next four weeks"
+kind = "rolling"
+series = "GSPC"
+days = 28  # about 20 trading days: where fear and volatility showed their effect (2011-2026: +1.9% after extreme fear against +1.0%)
+detail = "From the last close to the close 28 days later, price index; its buckets are by size, as fast signals move the tails more than the direction."
+buckets = [
+    { id = "rally", label = "Up 5% or more", when = ["ret >= 0.05"], tone = 2 },
+    { id = "up", label = "Up 0-5%", when = ["ret >= 0"], tone = 1 },
+    { id = "down", label = "Down 0-5%", when = ["ret > -0.05"], tone = -1 },
+    { id = "drop", label = "Down 5% or more", when = [], tone = -2 },
+]
+
+[btc_cycle]
+title = "Bitcoin this cycle"
+headline = { buckets = ["ath_strong", "ath_fade"], short = "Bitcoin new high", label = "Bitcoin makes a new high", by = "by end 2028" }
+kind = "path"
+series = "BTC"
+history_from = "2014-09-17"  # before Yahoo's start Bitcoin rose a hundredfold a year: not a base for now
+closes = "2028-12-31"
+detail = "Daily closes to 2028-12-31; the all-time high taken as 126,000."
+own = 0.4
+buckets = [
+    { id = "ath_strong", label = "New high, ends at 150k or more", when = ["px_hi > 126000", "px_end >= 150000"], tone = 2 },
+    { id = "ath_fade", label = "New high, ends below 150k", when = ["px_hi > 126000"], tone = 1 },
+    { id = "range", label = "No new high, ends 55k or more", when = ["px_end >= 55000"], tone = -0.5 },
+    { id = "bear", label = "No new high, ends below 55k", when = [], tone = -2 },
+]
+
+[fed]
+title = "FOMC decision"
+headline = { buckets = ["hike"], short = "Fed hike", label = "The Fed hikes", by = "at the next meeting" }
+kind = "kalshi"
+series = "KXFEDDECISION"
+next = 3
+detail = "Kalshi's market on the meeting's decision; resolves when Kalshi settles it."
+buckets = [
+    { id = "cut", label = "Cut", markets = ["C25", "C26"], tone = 1 },
+    { id = "hold", label = "Hold", markets = ["H0"], tone = 0 },
+    { id = "hike", label = "Hike", markets = ["H25", "H26"], tone = -1 },
+]
+
+[recession_2027]
+title = "US recession starting in 2027"
+headline = { buckets = ["yes"], short = "Recession 2027", label = "A US recession starts", by = "in 2027" }
+kind = "kalshi"
+event = "KXRECSSNBER-27"
+detail = "Kalshi's market (NBER dating); resolves when Kalshi settles it. Base rate: of the years since 1950 that did not open in a recession, the share in which one began (FRED USREC); the signposts are fitted on the same years, read on 1 January."
+base_rate = "recession_start"
+buckets = [
+    { id = "yes", label = "Yes", markets = ["KXRECSSNBER-27"], tone = -2 },
+    { id = "no", label = "No", markets = [], tone = 1 },
+]
+
+[spx_month]
+title = "S&P 500 this month"
+kind = "period"
+series = "GSPC"
+every = "month"
+measure = "ret"
+buckets = [
+    { id = "up", label = "Ends the month higher", when = ["ret > 0"], tone = 1 },
+    { id = "down", label = "Ends the month lower", when = [], tone = -1 },
+]
+
+[btc_month]
+title = "Bitcoin this month"
+kind = "period"
+series = "BTC"
+history_from = "2014-09-17"
+every = "month"
+measure = "ret"
+buckets = [
+    { id = "up", label = "Ends the month higher", when = ["ret > 0"], tone = 1 },
+    { id = "down", label = "Ends the month lower", when = [], tone = -1 },
+]
+
+[vix_quarter]
+title = "VIX at the end of the quarter"
+kind = "period"
+series = "VIX"
+every = "quarter"
+measure = "end"
+buckets = [
+    { id = "high", label = "Closes the quarter above 25", when = ["end > 25"], tone = -1 },
+    { id = "low", label = "Closes it at 25 or below", when = [], tone = 1 },
+]
+
+[cpi_next]
+title = "CPI inflation next month"
+kind = "period"
+series = "CPI"
+every = "month"
+measure = "yoy_change"
+detail = "Whether next month's CPI year-on-year rate is above this month's (FRED CPIAUCSL), resolved when it is published."
+buckets = [
+    { id = "higher", label = "Year-on-year rate rises", when = ["chg > 0"], tone = -1 },
+    { id = "lower", label = "Stays or falls", when = [], tone = 1 },
+]
+
+# --- the price ranges of the research runs of 2026-10-29: each run's scenarios cut the fund's price change into
+# buckets (halfway between neighbouring scenarios' middles); registered then, with the run's probabilities as the
+# source "research" on their first day, and scored like any other question since.
+
+[qqq_2y]
+title = "QQQ (Nasdaq-100) over two years"
+kind = "path"
+series = "QQQ"
+closes = "2028-10-28"
+detail = "From the close on 2026-10-29 to the close on 2028-10-28, price only (no dividends)."
+buckets = [
+    { id = "s1", label = "Below -22.5%", when = ["ret < -0.225"], tone = -2 },
+    { id = "s2", label = "-22.5% to -10%", when = ["ret < -0.1"], tone = -1 },
+    { id = "s3", label = "-10% to +2.5%", when = ["ret < 0.025"], tone = 0 },
+    { id = "s4", label = "+2.5% to +16.25%", when = ["ret < 0.1625"], tone = 1 },
+    { id = "s5", label = "+16.25% or more", when = [], tone = 2 },
+]
+
+[smh_2y]
+title = "SMH (semiconductors) over two years"
+kind = "path"
+series = "SMH"
+closes = "2028-10-28"
+detail = "From the close on 2026-10-29 to the close on 2028-10-28, price only (no dividends)."
+buckets = [
+    { id = "s1", label = "Below -30%", when = ["ret < -0.3"], tone = -2 },
+    { id = "s2", label = "-30% to -16.25%", when = ["ret < -0.1625"], tone = -1 },
+    { id = "s3", label = "-16.25% to 0%", when = ["ret < 0.0"], tone = 0 },
+    { id = "s4", label = "0% to +23.75%", when = ["ret < 0.2375"], tone = 1 },
+    { id = "s5", label = "+23.75% or more", when = [], tone = 2 },
+]
+
+[tlt_2y]
+title = "TLT (long Treasuries) over two years"
+kind = "path"
+series = "TLT"
+closes = "2028-10-28"
+detail = "From the close on 2026-10-29 to the close on 2028-10-28, price only (no dividends)."
+buckets = [
+    { id = "s1", label = "Below -21.25%", when = ["ret < -0.2125"], tone = -2 },
+    { id = "s2", label = "-21.25% to -7.5%", when = ["ret < -0.075"], tone = -1 },
+    { id = "s3", label = "-7.5% to +5%", when = ["ret < 0.05"], tone = 0 },
+    { id = "s4", label = "+5% to +18.75%", when = ["ret < 0.1875"], tone = 1 },
+    { id = "s5", label = "+18.75% or more", when = [], tone = 2 },
+]
+
+[gld_1y]
+title = "GLD (gold) over a year"
+kind = "path"
+series = "GLD"
+closes = "2027-10-29"
+detail = "From the close on 2026-10-29 to the close on 2027-10-29, price only (no dividends)."
+buckets = [
+    { id = "s1", label = "Below -18.75%", when = ["ret < -0.1875"], tone = -2 },
+    { id = "s2", label = "-18.75% to 0%", when = ["ret < 0.0"], tone = -1 },
+    { id = "s3", label = "0% to +18.75%", when = ["ret < 0.1875"], tone = 0 },
+    { id = "s4", label = "+18.75% to +31.25%", when = ["ret < 0.3125"], tone = 1 },
+    { id = "s5", label = "+31.25% or more", when = [], tone = 2 },
+]
+
+[ibit_2y]
+title = "IBIT (Bitcoin) over two years"
+kind = "path"
+series = "IBIT"
+history_from = "2014-09-17"  # as btc_cycle: before Yahoo's start Bitcoin rose a hundredfold a year
+closes = "2028-10-28"
+detail = "From the close on 2026-10-29 to the close on 2028-10-28, price only (no dividends)."
+buckets = [
+    { id = "s1", label = "Below -50%", when = ["ret < -0.5"], tone = -2 },
+    { id = "s2", label = "-50% to -17.5%", when = ["ret < -0.175"], tone = -1 },
+    { id = "s3", label = "-17.5% to +15%", when = ["ret < 0.15"], tone = 0 },
+    { id = "s4", label = "+15% to +65%", when = ["ret < 0.65"], tone = 1 },
+    { id = "s5", label = "+65% or more", when = [], tone = 2 },
+]

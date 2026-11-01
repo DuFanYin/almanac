@@ -1,0 +1,40 @@
+/* The page's ground: the page layout, status
+ * dots, the meter and stack bars, the facts list. Tokens and components come from design/ui.css; scenarios.css adds
+ * the page's own. */
+:root {
+  /* the meters' track */
+  --track: color-mix(in oklab, var(--ui-c1) 16%, var(--ui-surface));
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--ui-page);
+  color: var(--ui-ink);
+  font: var(--ui-text)/1.55 var(--ui-font);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+main { max-width: var(--ui-max-width); margin: 0 auto; padding: 4px var(--ui-gutter) 24px; }
+
+/* status = icon + label, never color alone */
+.st { display: inline-flex; align-items: center; gap: .3rem; white-space: nowrap; color: var(--ui-ink-2); }
+.st::before { content: ""; width: .7rem; height: .7rem; flex: none; border-radius: 50%; background: currentColor; }
+.st > span { color: var(--ui-ink); }
+.st.good::before { background: var(--ui-up); }
+
+.meter { height: 8px; border-radius: 4px; background: var(--track); overflow: hidden; }
+.meter i { display: block; height: 100%; width: 0; background: var(--ui-c1); border-radius: inherit; transition: width .4s; }
+
+.stack { display: flex; height: 22px; gap: 2px; margin: .25rem 0 .6rem; }
+.stack i { height: 100%; min-width: 0; transition: flex-grow .4s; }
+.stack i:first-child { border-radius: 4px 0 0 4px; }
+.stack i:last-child { border-radius: 0 4px 4px 0; }
+
+.facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); gap: .35rem 1rem; margin: .6rem 0 0; }
+.facts div { min-width: 0; }
+.facts dt { color: var(--ui-ink-2); font-size: var(--ui-text-xs); }
+.facts dd { margin: 0; font-weight: 500; font-size: var(--ui-text-sm); }
+.facts dd .st { font-weight: 500; }
+
+footer { margin-top: 1rem; color: var(--ui-muted); font-size: var(--ui-text-xs); text-align: center; }

@@ -1,3 +1,30 @@
+[project]
+name = "almanac"
+version = "0.3.0"
+description = "A personal investment system: one world of probabilities from history and LLM scenarios, scored against what happens, and one decision step that turns it into trades within your guardrails (src/board), on research (src/research) and one model layer (src/llm)"
+requires-python = ">=3.13"
+license = "MIT"
+# src/llm and src/research: the model layer and research
+dependencies = ["httpx==0.28.1", "pydantic==2.14.0"]
+
+[dependency-groups]
+board = ["numpy==2.5.3", "pandas==3.0.6", "yfinance==1.7.0"]
+dev = ["pytest", "ruff"]
+web = [
+    "fastapi==0.142.2",
+    "opentelemetry-api==1.45.1",
+    "starlette==1.7.0",
+    "uvicorn==0.54.0",
+]
+
+[tool.uv]
+package = false
+default-groups = ["board", "web", "dev"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
 [tool.ruff]
 line-length = 120
 target-version = "py311"
@@ -8,7 +35,7 @@ exclude = [".venv", "outputs"]
 select = ["E", "F", "I"]
 
 [tool.ruff.lint.per-file-ignores]
-"src/server/prompts/templates.py" = ["E501"]
+"src/llm/methods/prompts.py" = ["E501"]
 
 [tool.ruff.format]
 quote-style = "double"

@@ -1,0 +1,134 @@
+# The asset classes the board judges, with holdings or without: how each one's return over a horizon follows the
+# factors (config/factors.toml, model/response.py), and its return in each of the horizon's futures
+# (model/distribution.py). A category of the rules (local/rules.toml) names its class with `class`.
+# proxy: the series that stands in for the class in history (series.toml); a list carries the first one
+# further back in time with each next, scaled to meet it; "cash" is the 3-month bill at its yield.
+# history_from: the stand-in counts only from this day.
+# dividend: stock indexes are prices, so their returns get dividends added: the S&P 500's yield (`yield`) times how
+#   the class's fund (`like`) yielded against it over the fund's life (its price with dividends reinvested against
+#   without; model/asset_classes.py dividend_yield). Measured, never set by hand. The futures take today's yield, not
+#   each window's: history paid 4% where today pays 1%, and buybacks, which replaced much of that, are in the prices.
+# start: for cash and Treasuries, the yield their return starts from: the futures earn today's, not each window's
+#   (model/response.py start_shift).
+
+[class.us_large]
+label = "US large caps (S&P 500)"
+proxy = "GSPC"
+dividend = { yield = "SPDIV / 100" }
+
+[class.us_equal]
+label = "US stocks, equal weight"
+proxy = ["RSP", "RUT", "GSPC"]  # the equal-weight ETF from 2003, small caps before, then the S&P 500
+dividend = { yield = "SPDIV / 100", like = "RSP" }
+
+[class.us_tech]
+label = "US big tech (Nasdaq-100)"
+proxy = ["NDX", "IXIC"]
+dividend = { yield = "SPDIV / 100", like = "QQQ" }
+
+[class.tech_sector]
+label = "US tech sector"
+proxy = ["XLK", "IXIC"]
+dividend = { yield = "SPDIV / 100", like = "XLK" }
+
+[class.semis]
+label = "Semiconductors"
+proxy = ["SOX", "IXIC"]
+dividend = { yield = "SPDIV / 100", like = "SMH" }
+
+[class.intl]
+label = "Developed markets outside the US"
+proxy = "EFA"
+dividend = { yield = "SPDIV / 100", like = "EFA" }
+
+[class.treasuries]
+label = "10-year Treasuries"
+proxy = "UST10_TR"
+start = "DGS10"  # a bond's return over a few years is mostly the yield it was bought at
+
+[class.cash]
+label = "Cash (3-month bills)"
+proxy = "cash"
+start = "DTB3"  # bills from 1954: today's rate, not the rate of each window's start
+
+[class.gold]
+label = "Gold"
+proxy = "GOLD"
+
+[class.bitcoin]
+label = "Bitcoin"
+proxy = "BTC"
+history_from = "2014-09-17"  # before Yahoo's start Bitcoin rose a hundredfold a year: no stand-in for holding it now
+
+# A simple mix the targets are set beside, on the same futures and in the backtest.
+[baseline."60/40"]
+us_large = 0.6
+treasuries = 0.4
+
+# ---- the investing styles
+# Five investing styles, 1 (cautious) to 5 (bold): preferences, never beliefs. They change what the board
+# suggests doing, not the probabilities. Your preferences pick one with `profile = N` (local/rules.toml); the page
+# shows all five. Each is a policy, chosen once and kept, leaned within bounds by the world (model/decide.py):
+#   policy      the mix of asset classes held whatever the odds (shares of everything); the owner's own is their
+#               categories' targets (local/rules.toml), judged against their style's limits
+#   tilt        the most one class may lean from its policy, toward or away from it as today's world puts its
+#               expected return above or below usual past the noise; cash takes the difference (model/decide.py lean)
+#   worst_loss  the most the mix may lose in its bad case: the mean of its worst 10% of futures. A year allows
+#               year_limit of it, every other length as strict on your targets' own history (config/factors.toml).
+#               A lean never takes the bad case past it; past it, the guardrails move into a shelter (decide.py guard)
+#   cash_min    cash (3-month bills) at least this share
+#   class_cap   no class but cash and Treasuries above this share
+#   band        how far a share may drift from its decided share before a trade is suggested (rules read it as "band")
+#   step        the size of one buy or sell step, share of the account (rules read it as "step")
+# How to choose: answer a few lottery questions (a sure 5%, or half a chance of +30% and half of -15%?), then
+# check against what was actually done: firings marked skipped again and again mean the real style is another.
+
+[profile.1]
+label = "Cautious"
+worst_loss = 0.10
+cash_min = 0.25
+class_cap = 0.20
+band = 0.03
+step = 0.02
+tilt = 0.02
+policy = { us_large = 0.20, intl = 0.05, treasuries = 0.35, cash = 0.30, gold = 0.10 }
+
+[profile.2]
+label = "Careful"
+worst_loss = 0.175
+cash_min = 0.15
+class_cap = 0.28
+band = 0.04
+step = 0.035
+tilt = 0.03
+policy = { us_large = 0.28, intl = 0.08, treasuries = 0.30, cash = 0.22, gold = 0.12 }
+
+[profile.3]
+label = "Balanced"
+worst_loss = 0.25
+cash_min = 0.10
+class_cap = 0.35
+band = 0.05
+step = 0.05
+tilt = 0.04
+policy = { us_large = 0.35, us_tech = 0.08, intl = 0.10, treasuries = 0.25, cash = 0.12, gold = 0.10 }
+
+[profile.4]
+label = "Growth"
+worst_loss = 0.35
+cash_min = 0.06
+class_cap = 0.45
+band = 0.075
+step = 0.075
+tilt = 0.05
+policy = { us_large = 0.40, us_tech = 0.15, intl = 0.10, treasuries = 0.15, cash = 0.08, gold = 0.12 }
+
+[profile.5]
+label = "Bold"
+worst_loss = 0.45
+cash_min = 0.03
+class_cap = 0.55
+band = 0.10
+step = 0.10
+tilt = 0.06
+policy = { us_large = 0.40, us_tech = 0.25, semis = 0.05, intl = 0.10, treasuries = 0.07, cash = 0.03, gold = 0.10 }

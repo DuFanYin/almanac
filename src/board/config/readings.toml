@@ -1,0 +1,86 @@
+# Texts read into numbers by the LLM (steps/readings.py, src/llm/methods/readings.py). Each
+# reading is a series (series.toml, source = "reading"): every text asked `samples` times for a number on its scale,
+# with quotes that must be in the text word for word; the day's value is the mean of its texts. Only texts published
+# from the first run on are read (at most `back` days before it, once): never history, which the model knows the
+# end of. A text that does not bear on the question counts for nothing.
+# texts: fed (the Fed's monetary policy releases and the Board's speeches, each when published), news (one text of
+#   the headlines on `queries` over the last `every` days, every `every` days) or sec (the earnings releases of
+#   `companies`, {name: SEC CIK}, each when filed; read only with local/settings.toml sec_contact, as EDGAR asks).
+samples = 3
+back = 7
+# bears_on: which factors a reading speaks to and which way ({factor: 1} when a higher reading means the factor
+#   higher): a scenario that takes the factor the other way has the reading against it (steps/scenarios/page.py).
+
+[reading.FED_HAWK]
+bears_on = { rate10 = 1, real10 = 1, fincond = 1 }
+texts = "fed"
+what = "How hawkish the Federal Reserve sounds about the path of its policy rate: toward raising it or holding it high, or toward cutting it."
+scale = "-2: clearly toward cutting soon; -1: leaning toward cutting; 0: balanced, or holding with no lean; 1: leaning toward holding high or raising; 2: clearly toward raising. Not relevant: a text not about monetary policy (bank supervision, payments, community development)."
+
+[reading.AI_CAPEX]
+bears_on = { stocks = 1 }
+texts = "news"
+every = 7
+queries = ["AI capital expenditure", "data center spending AI", "hyperscaler capex", "AI chips orders"]
+what = "Whether the large companies investing in AI (cloud providers, chip makers, model labs) are reported to be raising or cutting that investment."
+scale = "-2: clear reports of cuts, cancellations or pauses; -1: some signs of slowing; 0: steady, or mixed; 1: raising; 2: sharply raising, record plans. Not relevant: no headline about AI investment."
+
+[reading.AI_CAPEX_RELEASES]
+bears_on = { stocks = 1 }
+texts = "sec"
+companies = { Microsoft = 789019, Alphabet = 1652044, Amazon = 1018724, Meta = 1326801, NVIDIA = 1045810, Oracle = 1341439 }
+what = "Whether this company, in its own earnings release, is raising or cutting its investment in AI: data centers, servers, chips, capital expenditure on AI infrastructure (for a chip maker: whether its customers' orders for AI chips are rising or falling)."
+scale = "-2: cuts, cancellations or pauses; -1: slower growth than before, or a lower outlook; 0: steady, or no change stated; 1: raising; 2: sharply raising, a record or a higher outlook. Not relevant: the release says nothing about AI investment or capital expenditure."
+
+[reading.NEWS_MOOD]
+bears_on = { stocks = 1, fincond = -1 }
+texts = "news"
+every = 1
+queries = ["stock market", "US economy", "Federal Reserve", "inflation", "recession"]
+what = "The mood the day's headlines give about US markets and the economy."
+scale = "-2: alarm, panic, crisis; -1: worried, gloomy; 0: mixed or calm; 1: upbeat; 2: euphoric. Not relevant: no headline about markets or the economy."
+
+# Signposts on the readings: each the mean of the readings in its window, however few so far (avg). Too new to be
+# measured, each is given what the LLM expects it to say about the factors, and the world uses that at half weight,
+# sized as the measured expectations typically are, until there is history enough to measure it (steps/readings.py
+# expectations; the owner, 2026-10-31).
+
+[[signpost]]
+id = "fed_reads_hawkish"
+name = "Fed reads hawkish (60-day mean)"
+driver = "Rates and credit"
+value = "avg(FED_HAWK, 60)"
+red = "> 0.75"
+yellow = "> 0.4"
+try_on = ["rate10_short", "real10_short", "fincond_short", "stocks_short"]
+why = "A Fed that sounds set on holding high or raising pushes yields up and conditions tighter."
+
+[[signpost]]
+id = "ai_capex_cooling"
+name = "AI investment reported cooling (4-week mean)"
+driver = "AI capex and tech"
+value = "avg(AI_CAPEX, 28)"
+red = "< -0.5"
+yellow = "< 0"
+try_on = ["stocks_short"]
+why = "The market's leaders are valued on AI investment going on; reports of cuts come before the orders do."
+
+[[signpost]]
+id = "ai_capex_releases_cooling"
+name = "AI investment cooling in the companies' own earnings releases (4-month mean)"
+driver = "AI capex and tech"
+value = "avg(AI_CAPEX_RELEASES, 120)"
+red = "< -0.25"
+yellow = "< 0.25"
+try_on = ["stocks_short"]
+why = "What the largest AI investors say about their own spending, each quarter, comes before their suppliers' orders turn."
+
+[[signpost]]
+id = "news_gloom"
+name = "News gloomy (7-day mean)"
+driver = "Sentiment and trend"
+value = "avg(NEWS_MOOD, 7)"
+red = "< -0.75"
+yellow = "< -0.4"
+try_on = ["stocks_short", "fincond_short"]
+why = "A run of alarmed headlines tends to come with tighter conditions and falling prices."

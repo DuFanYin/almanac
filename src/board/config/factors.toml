@@ -1,0 +1,84 @@
+# The factors that describe the world, each one series measured over a window: ret (end / start - 1), diff (end -
+# start, for rates and levels), ann (the yearly rate of change: inflation). up: whether a rise is good (1) or bad (-1)
+# for the holdings, for the page's colours only. Checked on history (10-29): from 1971 about 221 independent windows
+# at 3 months, 54 at a year, 17 at three years; with the stock market among them, the factors explain most of each
+# asset class's return but gold's.
+#
+# The world (src/board/model/world.py) is a weight on every week of their joint history from history_from, read at
+# any length from today. horizon: the lengths it is read at for you (the page, your limits, the decision step):
+# label, days. The LLM's scenarios (the world's last layer) are written at month, short, long and longer; a week takes
+#   the month's.
+# year_limit: the share of your risk level's bad-case limit (worst_loss in asset_classes.toml) allowed over a year,
+#   the bad case being the mean of the worst 10% of the futures; every other length's limit is the year's scaled by
+#   how your targets' own bad case in history at that length compares with a year's (each length as strict).
+# The decision step (model/decide.py) acts at a month, three months, a year and three years; a week is shown, not acted
+#   on (the owner, 2026-10-31).
+
+history_from = "1971-03-01"
+year_limit = 0.8
+
+[horizon.week]
+label = "1 week"
+days = 7
+
+[horizon.month]
+label = "1 month"
+days = 30
+
+[horizon.short]
+label = "3 months"
+days = 91
+
+[horizon.long]
+label = "1 year"
+days = 365
+
+[horizon.longer]
+label = "3 years"
+days = 1095
+
+[factor.stocks]
+label = "S&P 500"
+series = "GSPC"
+measure = "ret"
+up = 1
+
+[factor.rate10]
+label = "10-year Treasury yield"
+series = "DGS10"
+measure = "diff"
+unit = "pts"
+up = -1
+
+[factor.real10]
+label = "10-year real yield"
+series = "DFII10"
+measure = "diff"
+unit = "pts"
+up = -1
+
+[factor.infl]
+label = "CPI inflation, yearly rate"
+series = "CPI"
+measure = "ann"
+up = -1
+
+[factor.unemp]
+label = "Unemployment rate"
+series = "UNRATE"
+measure = "diff"
+unit = "pts"
+up = -1
+
+[factor.dollar]
+label = "US dollar index"
+series = "DXY"
+measure = "ret"
+up = 0
+
+[factor.fincond]
+label = "Financial conditions (NFCI, higher is tighter)"
+series = "NFCI"
+measure = "diff"
+unit = "index"
+up = -1
